@@ -1,6 +1,8 @@
 import axios from "axios";
 import * as cheerio from "cheerio";
-import { extractCurrency, extractPrice } from "../utils";
+import { extractCurrency, extractDescription, extractPrice } from "../utils";
+import { Average } from "next/font/google";
+
 export async function scrapeAmazonProduct(url: string) {
   // Scrape the product page
   if (!url) return;
@@ -19,9 +21,11 @@ export async function scrapeAmazonProduct(url: string) {
     port,
     rejectUnauthorized: false,
   };
+
   try {
     // Fetch the product page
     const response = await axios.get(url, options);
+
     const $ = cheerio.load(response.data);
 
     // Extract the product title
@@ -37,12 +41,13 @@ export async function scrapeAmazonProduct(url: string) {
       $(".a-price.a-text-price span.a-offscreen"),
       $("#listPrice"),
       $("#priceblock_dealprice"),
-      $(".a-size-base.a-color-price")
+      $(".a-size-base.a-color-price"),
+      $("span-b.-ubpt.-tal.-fs24.-prxs")
     );
 
     const outOfStock =
       $("#availability span").text().trim().toLocaleLowerCase() ===
-      "curently unavailable";
+      "currently unavailable";
 
     const images =
       $("#imgBlkFront").attr("data-a-dynamic-image") ||
@@ -50,33 +55,37 @@ export async function scrapeAmazonProduct(url: string) {
       "{}";
     const imageUrls = Object.keys(JSON.parse(images));
     const currency = extractCurrency($(".a-price-symbol"));
-    const discountRate = $(".savingsPercentage").text().replace(/ [-%]/g, "");
-    console.log({
-      title,
-      currentPrice,
-      originalPrice,
-      outOfStock,
-      imageUrls,
-      currency,
-      discountRate,
-    });
+
+    // Clean and convert the discountRate
+    let discountRate = $(".savingsPercentage")
+      .text()
+      .replace(/[^0-9.-]/g, "");
+    const discountRateNum = Number(discountRate);
+    console.log("Cleaned discountRate:", discountRate);
+
+    const description = extractDescription($);
 
     // Construct the product object with scraped information
-
     const data = {
       url,
       currency: currency || "$",
       image: imageUrls[0],
       title,
-      currentPrice: Number(currentPrice) || "N/A",
-      originalPrice: Number(originalPrice) || "N/A",
+      currentPrice: Number(currentPrice) || Number(originalPrice),
+      originalPrice: Number(originalPrice) || Number(currentPrice),
       priceHistory: [],
-      discountRate: Number(discountRate),
+      discountRate: discountRateNum,
       category: "category",
       isOutOfStock: outOfStock,
+      description,
       reviewsCount: 100,
       stars: 4.5,
+      lowestPrice: Number(currentPrice) || Number(originalPrice),
+      highestPrice: Number(currentPrice) || Number(originalPrice),
+      averagePrice: Number(currentPrice) || Number(originalPrice),
     };
+
+    return data;
   } catch (error) {
     throw new Error("Failed to scrape Amazon product");
   }

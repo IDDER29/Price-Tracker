@@ -19,7 +19,7 @@ const Home = () => {
             </p>
             <h1 className="head-text">
               Unleash the Power of
-              <span className="text-primary"> PriceLhamza</span>
+              <span className="text-primary"> PriceLhmza</span>
             </h1>
 
             <p className="mt-6">
