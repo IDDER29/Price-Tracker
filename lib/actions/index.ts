@@ -10,8 +10,15 @@ import { generateEmailBody, sendEmail } from "../nodemailer/index";
 import UserDb from "../models/user.model";
 
 import bcrypt from "bcryptjs"; // Use bcryptjs instead of bcrypt
+import { options } from "../../app/api/auth/[...nextauth]/options";
+import { getServerSession } from "next-auth/next";
 
 export async function scrapeAndStoreProduct(productUrl: string) {
+  const session = await getServerSession(options);
+  if (!session) {
+    return "Alert Invalid Request: User not logged in";
+  }
+  const email = session.user.email;
   if (!productUrl) return;
 
   try {
@@ -46,6 +53,7 @@ export async function scrapeAndStoreProduct(productUrl: string) {
       { upsert: true, new: true }
     );
 
+    await addUserEmailToProduct(newProduct._id, email);
     revalidatePath(`/products/${newProduct._id}`);
   } catch (error: any) {
     throw new Error(`Failed to create/update product: ${error.message}`);
@@ -66,11 +74,14 @@ export async function getProductById(productId: string) {
   }
 }
 
-export async function getAllProducts() {
+export async function getAllProducts(session: any) {
   try {
     connectToDB();
-
-    const products = await Product.find();
+    if (!session) return null;
+    const userEmail = session.user.email;
+    const products = await Product.find({
+      users: { $elemMatch: { email: userEmail } },
+    });
 
     return products;
   } catch (error) {
@@ -79,6 +90,11 @@ export async function getAllProducts() {
 }
 
 export async function getSimilarProducts(productId: string) {
+  const session = await getServerSession(options);
+  if (!session) {
+    return "Alert Invalid Request: User not logged in";
+  }
+  const userEmail = session.user.email;
   try {
     connectToDB();
 
@@ -88,6 +104,7 @@ export async function getSimilarProducts(productId: string) {
 
     const similarProducts = await Product.find({
       _id: { $ne: productId },
+      users: { $elemMatch: { email: userEmail } },
     }).limit(3);
 
     return similarProducts;
