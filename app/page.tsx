@@ -4,10 +4,15 @@ import Image from "next/image";
 import { getAllProducts } from "@/lib/actions";
 import ProductCard from "@/components/ProductCard";
 
+import { options } from "./api/auth/[...nextauth]/options";
+import { getServerSession } from "next-auth/next";
+
 const Home = async () => {
+  const session = await getServerSession(options);
   const allProducts = await getAllProducts();
   return (
     <>
+      <h1>Welcome {session.user.name}</h1>
       <section className="px-6 md:px-20 py-24">
         <div className="flex max-xl:flex-col gap-16">
           <div className="flex flex-col justify-center">

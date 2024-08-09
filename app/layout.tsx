@@ -2,16 +2,18 @@ import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import AuthProvider from "./context/AuthProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
-  weight: ['400', '500', '600', '700'],
- });
+  weight: ["400", "500", "600", "700"],
+});
 
 export const metadata: Metadata = {
   title: "Lhmza",
-  description: "Track prices of your favorite products and get notified when they drop without any effort.",
+  description:
+    "Track prices of your favorite products and get notified when they drop without any effort.",
 };
 
 export default function RootLayout({
@@ -21,12 +23,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <main className="max-w-10xl mx-auto">
-      <Navbar/>
-        {children}
-        </main>
+      <AuthProvider>
+        <body className={inter.className}>
+          <main className="max-w-10xl mx-auto">
+            <Navbar />
+            {children}
+          </main>
         </body>
+      </AuthProvider>
     </html>
   );
 }

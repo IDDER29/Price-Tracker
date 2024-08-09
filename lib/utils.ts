@@ -1,5 +1,6 @@
 import { PriceHistoryItem, Product } from "@/types";
-
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 const Notification = {
   WELCOME: "WELCOME",
   CHANGE_OF_STOCK: "CHANGE_OF_STOCK",
@@ -116,3 +117,7 @@ export const formatNumber = (num: number = 0) => {
     maximumFractionDigits: 0,
   });
 };
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}

@@ -7,6 +7,9 @@ import { scrapeAmazonProduct } from "../scraper";
 import { getAveragePrice, getHighestPrice, getLowestPrice } from "../utils";
 import { User } from "@/types";
 import { generateEmailBody, sendEmail } from "../nodemailer/index";
+import UserDb from "../models/user.model";
+
+import bcrypt from "bcryptjs"; // Use bcryptjs instead of bcrypt
 
 export async function scrapeAndStoreProduct(productUrl: string) {
   if (!productUrl) return;
@@ -118,5 +121,68 @@ export async function addUserEmailToProduct(
     }
   } catch (error) {
     console.log(error);
+  }
+}
+
+export async function createUser(
+  name: string,
+  email: string,
+  password: string
+) {
+  if (!name || !email || !password) {
+    throw new Error("Name, email, and password are required.");
+  }
+
+  try {
+    // Check if already connected to avoid multiple connections
+    await connectToDB(); // Assuming this function is properly defined elsewhere
+    // Hash the password before saving
+    const isExist = await UserDb.findOne({ email });
+    if (isExist) {
+      return "Alert Invalid Request: User already exists";
+    }
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    const newUser = { name, email, password: hashedPassword };
+
+    const user = new UserDb(newUser);
+
+    console.log("pass the first creat content ", user);
+    // Save user to the database
+    const savedUser = await user.save();
+
+    return "user created successfully";
+  } catch (error) {
+    console.error("Error creating user:", error);
+    throw new Error("Failed to create user. Please try again later.");
+  }
+}
+
+export async function loginUser(email: string, password: string) {
+  if (!email || !password) {
+    throw new Error("Email and password are required.");
+  }
+
+  try {
+    // Check if already connected to avoid multiple connections
+    await connectToDB(); // Assuming this function is properly defined elsewhere
+
+    // Find the user by email
+    const user = await UserDb.findOne({ email });
+    if (!user) {
+      return "Invalid email or password.";
+    }
+
+    // Compare the provided password with the hashed password in the database
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return "Invalid email or password.";
+    }
+
+    // If login is successful, return a success message (or a token if implementing JWT)
+    return "Login successful";
+  } catch (error) {
+    console.error("Error during login:", error);
+    throw new Error("Failed to log in. Please try again later.");
   }
 }
